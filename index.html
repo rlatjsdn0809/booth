@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>청소초 부스 인증</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+/* One file, three screens chosen by the address: student (default), ?staff (운영진 승인), ?dash (실시간 현황판). Same paper look and booth colors as the leaflet and 책마블. */
+:root {
+  --paper: #F6F3EC;
+  --card: #FFFFFF;
+  --ink: #22304A;
+  --ink-soft: #4A5568;
+  --line: #D9D1C2;
+  --sky: #7A98D4;
+  --ok: #2E7D4F;
+  --ok-bg: #E3F3E8;
+  --warn: #B86E0A;
+  --warn-bg: #FFF1D6;
+  --bad: #B83A2E;
+  --bad-bg: #FBE6E3;
+  --display: 'Jua', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  --body: 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+  color-scheme: light;
+}
+html, body { min-height: 100%; }
+[hidden] { display: none !important; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.5; word-break: keep-all; -webkit-tap-highlight-color: transparent; }
+button { font-family: inherit; color: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible, summary:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+a { color: var(--ink); }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; }
+#app { max-width: 880px; margin: 0 auto; padding: 14px 16px 32px; display: grid; gap: 16px; }
+body.wide #app { max-width: 1500px; }
+
+.topbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.brand { font-family: var(--display); font-size: 20px; display: flex; align-items: center; gap: 8px; }
+.brand i { display: inline-flex; gap: 3px; }
+.brand i b { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid var(--ink); }
+.conn { font-size: 13px; font-weight: 700; border: 2px solid var(--ink); border-radius: 999px; padding: 2px 10px; background: var(--card); }
+.conn.ok { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+.conn.bad { background: var(--bad-bg); border-color: var(--bad); color: var(--bad); }
+
+.btn { border: 2px solid var(--ink); background: var(--card); border-radius: 14px; padding: 12px 18px; font-size: 17px; font-weight: 700; cursor: pointer; min-height: 48px; box-shadow: 0 3px 0 var(--ink); transition: transform .08s, box-shadow .08s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 0 0 var(--ink); }
+.btn.primary { background: var(--ink); color: #FFFFFF; }
+.btn.ok { background: var(--ok); color: #FFFFFF; border-color: #1E5A38; box-shadow: 0 3px 0 #1E5A38; }
+.btn.danger { background: var(--bad); color: #FFFFFF; border-color: #7E2219; box-shadow: 0 3px 0 #7E2219; }
+.btn.big { font-size: 20px; min-height: 60px; width: 100%; }
+.btn.small { font-size: 14px; padding: 6px 12px; min-height: 38px; border-radius: 10px; box-shadow: 0 2px 0 var(--ink); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+.panel { background: var(--card); border: 2px solid var(--ink); border-radius: 18px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel.soft { border-color: var(--line); }
+.panel h2 { font-size: 24px; }
+.ph { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.kicker { margin: 0; font-weight: 700; color: var(--ink-soft); font-size: 15px; }
+.note { font-size: 14px; color: var(--ink-soft); margin: 0; }
+.err { color: var(--bad); font-weight: 700; font-size: 15px; min-height: 1.5em; margin: 0; }
+.lbl { font-weight: 700; font-size: 15px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font-weight: 700; font-size: 15px; }
+.field input, .field select { font-size: 19px; padding: 10px 12px; border: 2px solid var(--ink); border-radius: 12px; background: var(--card); min-height: 52px; width: 100%; font-family: inherit; color: var(--ink); }
+.row3 { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(80px, 1fr) minmax(150px, 2fr); gap: 10px; }
+@media (max-width: 520px) { .row3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } .row3 .grow { grid-column: 1 / -1; } }
+.seg { display: flex; flex-wrap: wrap; gap: 8px; }
+.seg button { border: 2px solid var(--ink); background: var(--card); border-radius: 999px; padding: 8px 16px; font-size: 17px; font-weight: 700; cursor: pointer; min-height: 48px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: #FFFFFF; }
+.foot { text-align: center; font-size: 14px; color: var(--ink-soft); }
+.foot a { color: var(--ink-soft); margin: 0 6px; }
+
+/* Student */
+.hero h1 { font-size: clamp(40px, 9vw, 64px); line-height: 1.05; }
+.hero p { margin: 6px 0 0; font-size: 17px; color: var(--ink-soft); }
+.me { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.me .id { font-size: 15px; font-weight: 700; color: var(--ink-soft); }
+.me .nm { font-family: var(--display); font-size: 32px; line-height: 1.1; }
+.banner { border-radius: 16px; padding: 14px 16px; border: 2px solid var(--ink); display: flex; align-items: center; gap: 12px; flex-wrap: wrap; font-weight: 700; font-size: 17px; }
+.banner .dot { width: 40px; height: 40px; border-radius: 50%; border: 2px solid var(--ink); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 22px; flex-shrink: 0; }
+.banner .txt { flex: 1; min-width: 180px; }
+.banner small { display: block; font-weight: 500; font-size: 14px; color: var(--ink-soft); }
+.scanbtn { font-size: 26px; min-height: 92px; width: 100%; border-radius: 20px; background: var(--ink); color: #FFFFFF; font-family: var(--display); font-weight: 400; }
+.scanbtn svg { width: 40px; height: 40px; }
+.stamps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 560px) { .stamps { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.stamp { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; min-width: 0; }
+.stamp .ring { width: min(100%, 96px); aspect-ratio: 1; border-radius: 50%; border: 3px solid var(--ink); display: flex; align-items: center; justify-content: center; flex-direction: column; background: var(--card); font-family: var(--display); font-size: 30px; line-height: 1; position: relative; }
+.stamp .ring small { font-family: var(--body); font-size: 12px; font-weight: 700; margin-top: 4px; }
+.stamp.doing .ring, .stamp.wait .ring { background: var(--tint); }
+.stamp.wait .ring { border-style: dashed; }
+.stamp.done .ring { background: var(--c); transform: rotate(-8deg); box-shadow: inset 0 0 0 4px rgba(255,255,255,.55); }
+.stamp .bn { font-weight: 700; font-size: 14px; line-height: 1.3; }
+.stamp .bs { font-size: 12px; color: var(--ink-soft); font-weight: 700; }
+.how ol { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
+.count { font-family: var(--display); font-size: 26px; }
+
+/* Overlay + scanner */
+.overlay { position: fixed; inset: 0; z-index: 50; background: rgba(34,48,74,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.sheet { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; background: var(--card); border: 3px solid var(--ink); border-radius: 24px; padding: 26px 22px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+.sheet .big-num { width: 104px; height: 104px; border-radius: 50%; border: 4px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: var(--display); font-size: 56px; background: var(--c); }
+.sheet h2 { font-size: 34px; line-height: 1.15; }
+.sheet .who { font-size: 18px; font-weight: 700; background: var(--paper); border-radius: 12px; padding: 8px 14px; }
+.sheet p { margin: 0; font-size: 17px; }
+.sheet .btn { min-width: 180px; }
+.wait-dots { display: flex; gap: 8px; }
+.wait-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--c); border: 2px solid var(--ink); animation: bob 1s infinite ease-in-out; }
+.wait-dots i:nth-child(2) { animation-delay: .15s; } .wait-dots i:nth-child(3) { animation-delay: .3s; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.bigstamp { width: 170px; height: 170px; border-radius: 50%; border: 5px solid var(--ink); background: var(--c); display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: var(--display); font-size: 44px; line-height: 1; box-shadow: inset 0 0 0 7px rgba(255,255,255,.55); animation: thump .5s cubic-bezier(.2,1.6,.4,1) both; }
+.bigstamp small { font-size: 20px; margin-top: 6px; }
+@keyframes thump { from { transform: scale(1.8) rotate(-20deg); opacity: 0; } to { transform: scale(1) rotate(-8deg); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .bigstamp, .wait-dots i { animation: none; } }
+.scan { position: fixed; inset: 0; z-index: 60; background: #11182A; color: #FFFFFF; display: flex; flex-direction: column; }
+.scan video { flex: 1; width: 100%; min-height: 0; object-fit: cover; background: #000; }
+.scan .frame { position: absolute; left: 50%; top: 45%; width: min(70vw, 60vh); aspect-ratio: 1; transform: translate(-50%, -50%); border: 4px solid #FFFFFF; border-radius: 24px; box-shadow: 0 0 0 9999px rgba(0,0,0,.35); pointer-events: none; }
+.scan .bar { padding: 16px; display: flex; flex-direction: column; gap: 12px; align-items: center; background: #11182A; text-align: center; }
+.scan .bar p { margin: 0; font-size: 18px; font-weight: 700; }
+.toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 70; background: var(--ink); color: #FFFFFF; border-radius: 12px; padding: 10px 16px; font-weight: 700; max-width: calc(100% - 32px); }
+
+/* Staff */
+.shead { border-radius: 20px; border: 2px solid var(--ink); background: var(--tint); padding: 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.shead .num { width: 64px; height: 64px; border-radius: 50%; border: 3px solid var(--ink); background: var(--c); font-family: var(--display); font-size: 36px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.shead h1 { font-size: 30px; line-height: 1.1; }
+.shead .acts { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.kpi { background: var(--card); border: 2px solid var(--ink); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; }
+.kpi b { font-family: var(--display); font-weight: 400; font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+.kpi.hot { background: var(--warn-bg); border-color: var(--warn); }
+.list { display: flex; flex-direction: column; gap: 10px; }
+.empty { color: var(--ink-soft); font-size: 15px; padding: 6px 0; margin: 0; }
+.req { border: 2px solid var(--ink); border-radius: 14px; padding: 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--warn-bg); }
+.req .who2 { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
+.req .who2 b { font-size: 22px; font-family: var(--display); font-weight: 400; line-height: 1.2; }
+.req .who2 span { font-size: 14px; color: var(--ink-soft); font-weight: 700; }
+.req .acts2 { display: flex; gap: 8px; flex-wrap: wrap; }
+.req .acts2 .btn.ok { min-width: 140px; font-size: 19px; }
+.row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.row:last-child { border-bottom: none; }
+.row .grow { flex: 1; min-width: 160px; }
+.row .t { font-size: 14px; color: var(--ink-soft); font-weight: 700; font-variant-numeric: tabular-nums; }
+details.panel summary { cursor: pointer; font-family: var(--display); font-size: 21px; }
+.mform { display: grid; grid-template-columns: repeat(3, minmax(70px, 1fr)) minmax(140px, 2fr) auto; gap: 10px; align-items: end; }
+@media (max-width: 680px) { .mform { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mform .grow, .mform .btn { grid-column: 1 / -1; } }
+
+/* Dashboard */
+.dhead { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.dhead h1 { font-size: clamp(34px, 4vw, 52px); line-height: 1.05; }
+.clock { font-family: var(--display); font-size: clamp(30px, 3.4vw, 46px); font-variant-numeric: tabular-nums; }
+.dk { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 640px) { .dk { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.booths { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 900px) { .booths { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
+.bcard { border: 2px solid var(--ink); border-radius: 16px; background: var(--card); overflow: hidden; display: flex; flex-direction: column; min-width: 0; }
+.bcard .bt { background: var(--c); padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-weight: 900; border-bottom: 2px solid var(--ink); }
+.bcard .bt .n { width: 28px; height: 28px; border-radius: 50%; background: #FFFFFF; border: 2px solid var(--ink); display: inline-flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 400; flex-shrink: 0; }
+.bcard .bt small { margin-left: auto; font-weight: 700; font-size: 12px; }
+.bcard .bb { padding: 10px 12px; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.bcard .bb div { display: flex; flex-direction: column; }
+.bcard .bb b { font-family: var(--display); font-weight: 400; font-size: 32px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.bcard .bb span { font-size: 13px; font-weight: 700; color: var(--ink-soft); }
+.bcard .bb .w { grid-column: 1 / -1; font-size: 13px; font-weight: 700; color: var(--warn); min-height: 1.3em; }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.tabs button { border: 2px solid var(--ink); background: var(--card); border-radius: 999px; padding: 8px 18px; font-size: 18px; font-weight: 700; cursor: pointer; min-height: 48px; }
+.tabs button[aria-selected="true"] { background: var(--ink); color: #FFFFFF; }
+.tabs label { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-size: 15px; cursor: pointer; }
+.tabs label input { width: 20px; height: 20px; }
+.dgrid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px; align-items: start; }
+@media (max-width: 1100px) { .dgrid { grid-template-columns: minmax(0, 1fr); } }
+.gsum { display: grid; gap: 10px; }
+.grow-g { display: grid; grid-template-columns: 90px minmax(0, 1fr) 200px; gap: 12px; align-items: center; }
+@media (max-width: 640px) { .grow-g { grid-template-columns: 70px minmax(0, 1fr); } .grow-g .gn { grid-column: 1 / -1; } }
+.grow-g .gl { font-family: var(--display); font-size: 22px; }
+.grow-g .gn { font-size: 14px; font-weight: 700; color: var(--ink-soft); text-align: right; }
+.prog { height: 22px; border: 2px solid var(--ink); border-radius: 999px; background: var(--paper); overflow: hidden; display: flex; }
+.prog i { display: block; height: 100%; background: var(--c); }
+.prog i + i { border-left: 1px solid rgba(34,48,74,.35); }
+.tablewrap { overflow-x: auto; }
+table.st { width: 100%; border-collapse: separate; border-spacing: 0 6px; font-size: 16px; }
+table.st th { font-size: 13px; color: var(--ink-soft); text-align: left; font-weight: 700; padding: 0 8px; white-space: nowrap; }
+table.st th.c, table.st td.c { text-align: center; }
+table.st td { background: var(--card); padding: 8px; border-top: 2px solid var(--line); border-bottom: 2px solid var(--line); white-space: nowrap; }
+table.st td:first-child { border-left: 2px solid var(--line); border-radius: 12px 0 0 12px; }
+table.st td:last-child { border-right: 2px solid var(--line); border-radius: 0 12px 12px 0; }
+table.st td.nm { font-weight: 700; font-size: 18px; }
+table.st tr.all td { background: var(--ok-bg); }
+.cell { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; height: 32px; border-radius: 999px; border: 2px solid var(--line); font-size: 13px; font-weight: 700; color: var(--ink-soft); padding: 0 8px; }
+.cell.doing { background: var(--tint); border-color: var(--ink); color: var(--ink); }
+.cell.wait { background: var(--warn-bg); border: 2px dashed var(--warn); color: var(--warn); }
+.cell.done { background: var(--c); border-color: var(--ink); color: var(--ink); }
+.where { font-weight: 700; }
+.feed { display: flex; flex-direction: column; gap: 0; }
+.feed .fi { display: grid; grid-template-columns: 52px 26px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.feed .fi:last-child { border-bottom: none; }
+.feed .fi .t { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-weight: 700; font-size: 14px; }
+.feed .fi .d { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ink); background: var(--c); font-family: var(--display); font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+.legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--ink-soft); align-items: center; }
+.admin { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="topbar">
+    <div class="brand"><i aria-hidden="true"><b style="background:#F0B44C"></b><b style="background:#4FB3A5"></b><b style="background:#7A98D4"></b><b style="background:#E07B58"></b><b style="background:#86B96E"></b></i><span id="brandText">청소초 부스 인증</span></div>
+    <span class="conn" id="conn">연결 중…</span>
+  </div>
+  <main id="view" style="display:grid;gap:16px"><p class="note">불러오는 중…</p></main>
+</div>
+<div class="overlay" id="overlay" hidden></div>
+<div class="scan" id="scan" hidden>
+  <video id="video" playsinline muted autoplay></video>
+  <div class="frame" aria-hidden="true"></div>
+  <div class="bar"><p id="scanMsg">카메라를 켜는 중…</p><button class="btn" id="scanClose" type="button">닫기</button></div>
+</div>
+<canvas id="scanCanvas" hidden></canvas>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script>
+window.BOOKMARVEL_FIREBASE = {
+  apiKey: "AIzaSyD-osf_Dl7wsd6v53UwkT-39eSCkj-H8Zs",
+  authDomain: "bookmarvel-42c00.firebaseapp.com",
+  databaseURL: "https://bookmarvel-42c00-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "bookmarvel-42c00",
+  storageBucket: "bookmarvel-42c00.firebasestorage.app",
+  messagingSenderId: "449805886717",
+  appId: "1:449805886717:web:61de3be218a32c383b4a94"
+};
+</script>
+<script>
+(function () {
+'use strict';
+
+var BOOTHS = [
+  { k: 1, name: '만들기 키트', place: '도서관', c: '#F0B44C', tint: '#FFF6E3' },
+  { k: 2, name: '도서 게임', place: '도서관', c: '#4FB3A5', tint: '#E8F5F2' },
+  { k: 3, name: 'ZEP 퀴즈', place: '도서관', c: '#7A98D4', tint: '#ECF1FA' },
+  { k: 4, name: '로봇 축구', place: '컴퓨터실', c: '#E07B58', tint: '#FCEDE7' },
+  { k: 5, name: '드론 조종', place: '체육관', c: '#86B96E', tint: '#EEF6E9' }
+];
+var JSQR_URL = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+
+var $ = function (s) { return document.querySelector(s); };
+var view = $('#view'), overlay = $('#overlay');
+var DB = null, UID = null, OFFSET = 0, TS = null;
+var qs = new URLSearchParams(location.search);
+var MODE = qs.has('staff') ? 'staff' : qs.has('dash') ? 'dash' : 'student';
+var pending = parseAction(qs.get('b'), qs.get('a'));
+if (pending) history.replaceState(null, '', location.pathname);
+
+/* ---------- helpers ---------- */
+function lsGet(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function now() { return Date.now() + OFFSET; }
+function pad(n) { return (n < 10 ? '0' : '') + n; }
+function hm(t) { var d = new Date(t); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+function minsSince(t) { return t ? Math.max(0, Math.floor((now() - t) / 60000)) : 0; }
+function ago(t) { var m = minsSince(t); return m < 1 ? '방금' : m + '분 전'; }
+function B(k) { return BOOTHS[k - 1]; }
+function sidOf(g, c, n) { return 'g' + g + 'c' + c + 'n' + n; }
+function bk(rec, k) { return (rec && rec.b && rec.b['b' + k]) || null; }
+function st(rec, k) { var b = bk(rec, k); return (b && b.st) || ''; }
+function doneCount(rec) { var c = 0; for (var k = 1; k <= 5; k++) if (st(rec, k) === 'done') c++; return c; }
+function idLabel(r) { return r.g + '학년 ' + r.c + '반 ' + r.n + '번'; }
+function opts(a, b, sel) { var h = ''; for (var i = a; i <= b; i++) h += '<option value="' + i + '"' + (String(sel) === String(i) ? ' selected' : '') + '>' + i + '</option>'; return h; }
+function cvars(b) { return '--c:' + b.c + ';--tint:' + b.tint; }
+function toast(msg) { var t = $('#toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(function () { t.hidden = true; }, 2600); }
+function setConn(s) { var el = $('#conn'); el.className = 'conn ' + (s === 'ok' ? 'ok' : s === 'bad' ? 'bad' : ''); el.textContent = s === 'ok' ? '연결됨' : s === 'bad' ? '연결 안 됨' : '연결 중…'; }
+function fatal(msg) { view.innerHTML = '<section class="panel"><h2>잠깐만요</h2><p>' + esc(msg) + '</p><button class="btn primary" type="button" onclick="location.reload()">다시 시도</button></section>'; }
+function where(rec) {
+  for (var k = 1; k <= 5; k++) if (st(rec, k) === 'wait') return { k: k, s: 'wait' };
+  var c = rec && rec.cur;
+  if (c && st(rec, c) === 'doing') return { k: c, s: 'doing' };
+  for (k = 1; k <= 5; k++) if (st(rec, k) === 'doing') return { k: k, s: 'doing' };
+  return null;
+}
+function sortRecs(arr) { return arr.sort(function (a, b) { return (a.g - b.g) || (a.c - b.c) || (a.n - b.n); }); }
+function allRecs(obj) { var out = []; Object.keys(obj || {}).forEach(function (sid) { var r = obj[sid]; if (r && r.g) { r.sid = sid; out.push(r); } }); return sortRecs(out); }
+function parseAction(b, a) { b = Number(b); if (!(b >= 1 && b <= 5)) return null; if (a !== 's' && a !== 'c') return null; return { k: b, a: a }; }
+function parseQR(text) { try { var u = new URL(text); if (!/\/booth\/(index\.html)?$/.test(u.pathname)) return null; return parseAction(u.searchParams.get('b'), u.searchParams.get('a')); } catch (e) { return null; } }
+
+/* ---------- firebase ---------- */
+function initFb() {
+  if (!window.firebase) { setConn('bad'); fatal('인터넷 연결을 확인한 뒤 다시 열어 주세요.'); return; }
+  try { if (!firebase.apps.length) firebase.initializeApp(window.BOOKMARVEL_FIREBASE); } catch (e) { setConn('bad'); fatal('설정을 불러오지 못했어요.'); return; }
+  TS = firebase.database.ServerValue.TIMESTAMP;
+  firebase.auth().signInAnonymously().then(function (cred) {
+    UID = cred.user.uid;
+    DB = firebase.database();
+    DB.ref('.info/serverTimeOffset').on('value', function (s) { OFFSET = s.val() || 0; });
+    DB.ref('.info/connected').on('value', function (s) { setConn(s.val() ? 'ok' : 'wait'); });
+    if (MODE === 'staff') staffStart(); else if (MODE === 'dash') dashStart(); else studentStart();
+  }).catch(function (e) { setConn('bad'); fatal('서버에 접속하지 못했어요. (' + (e && e.code || '') + ')'); });
+}
+
+/* =========================================================
+   STUDENT
+   ========================================================= */
+var me = lsGet('bt_me'), myRec = null, myRef = null, loginG = 0, loginHold = null, ov = null;
+
+function studentStart() { if (me && me.sid) attachMe(); else renderLogin(); }
+
+function renderLogin(msg) {
+  var p = loginHold || me || { g: 0, c: 1, n: '', name: '' };
+  loginG = Number(p.g) || 0;
+  var gb = ''; for (var g = 1; g <= 6; g++) gb += '<button type="button" data-g="' + g + '" aria-pressed="' + (loginG === g) + '">' + g + '학년</button>';
+  view.innerHTML =
+    '<section class="hero"><p class="kicker">청소초등학교 미래 교육 부스</p><h1>부스 인증</h1><p>부스에서 QR을 찍어 체험을 시작하고, 다 마치면 운영진 선배에게 완료 확인을 받아요.</p></section>' +
+    (pending ? '<div class="banner" style="background:var(--warn-bg)">먼저 내 정보를 넣으면 방금 찍은 QR이 바로 처리돼요.</div>' : '') +
+    '<form class="panel" id="loginForm" autocomplete="off">' +
+      '<h2>내 정보</h2>' +
+      '<div class="lbl">학년</div><div class="seg" id="gSeg">' + gb + '</div>' +
+      '<div class="row3">' +
+        '<div class="field"><label for="fC">반</label><select id="fC">' + opts(1, 9, p.c || 1) + '</select></div>' +
+        '<div class="field"><label for="fN">번호</label><select id="fN"><option value="">고르기</option>' + opts(1, 35, p.n) + '</select></div>' +
+        '<div class="field grow"><label for="fName">이름</label><input id="fName" maxlength="10" value="' + esc(p.name) + '" placeholder="이름"></div>' +
+      '</div>' +
+      '<div id="dupBox"></div>' +
+      '<p class="err" id="loginErr">' + esc(msg || '') + '</p>' +
+      '<button class="btn primary big" type="submit">시작하기</button>' +
+    '</form>' +
+    '<p class="foot"><a href="?staff">운영진 화면</a>·<a href="?dash">실시간 현황판</a></p>';
+  $('#gSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-g]'); if (!b) return;
+    loginG = Number(b.dataset.g);
+    [].forEach.call(this.children, function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+  });
+  $('#loginForm').addEventListener('submit', function (e) { e.preventDefault(); submitLogin(false); });
+}
+
+function submitLogin(force) {
+  var c = Number($('#fC').value), n = Number($('#fN').value), name = $('#fName').value.trim();
+  var err = $('#loginErr');
+  if (!loginG) { err.textContent = '학년을 골라 주세요.'; return; }
+  if (!n) { err.textContent = '번호를 골라 주세요.'; return; }
+  if (!name) { err.textContent = '이름을 써 주세요.'; return; }
+  err.textContent = '';
+  var g = loginG, sid = sidOf(g, c, n);
+  loginHold = { g: g, c: c, n: n, name: name };
+  DB.ref('event/students/' + sid).once('value').then(function (s) {
+    var ex = s.val();
+    if (ex && ex.name && ex.name !== name && !force) {
+      $('#dupBox').innerHTML = '<div class="banner" style="background:var(--warn-bg)"><div class="txt">' + esc(idLabel({ g: g, c: c, n: n })) + '은 이미 ‘' + esc(ex.name) + '’ 이름으로 등록되어 있어요. 학년·반·번호가 맞나요?</div>' +
+        '<button class="btn small" type="button" id="dupNo">다시 고를게요</button><button class="btn small primary" type="button" id="dupYes">제가 맞아요</button></div>';
+      $('#dupNo').onclick = function () { $('#dupBox').innerHTML = ''; };
+      $('#dupYes').onclick = function () { submitLogin(true); };
+      return;
+    }
+    return DB.ref('event/students/' + sid).update({ g: g, c: c, n: n, name: name, upd: TS }).then(function () {
+      me = { g: g, c: c, n: n, name: name, sid: sid }; lsSet('bt_me', me); loginHold = null; attachMe();
+    });
+  }).catch(function () { err.textContent = '저장하지 못했어요. 인터넷 연결을 확인해 주세요.'; });
+}
+
+function attachMe() {
+  if (myRef) myRef.off();
+  myRef = DB.ref('event/students/' + me.sid);
+  myRef.on('value', function (s) {
+    myRec = s.val();
+    if (!myRec || !myRec.g) { myRef.update({ g: me.g, c: me.c, n: me.n, name: me.name, upd: TS }); return; }
+    renderStudent();
+    refreshOverlay();
+    if (pending) { var p = pending; pending = null; doAction(p); }
+  }, function () { fatal('기록을 불러오지 못했어요.'); });
+}
+
+var QR_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="7" y="7" width="4" height="4"/><rect x="13" y="7" width="4" height="4"/><rect x="7" y="13" width="4" height="4"/><path d="M13 13h4v4"/></svg>';
+
+function renderStudent() {
+  var r = myRec, dc = doneCount(r), w = where(r), banner;
+  if (dc === 5) banner = '<div class="banner" style="background:var(--ok-bg);border-color:var(--ok)"><span class="dot" style="background:#FFFFFF">★</span><div class="txt">다섯 부스를 모두 완주했어요!<small>이 화면을 선생님께 보여 주고 선물을 받아요.</small></div></div>';
+  else if (w && w.s === 'wait') banner = '<div class="banner" style="' + cvars(B(w.k)) + ';background:var(--tint)"><span class="dot" style="background:var(--c)">' + w.k + '</span><div class="txt">' + esc(B(w.k).name) + ' · 완료 확인을 기다리는 중<small>운영진 선배가 확인하면 도장이 찍혀요.</small></div><button class="btn small" type="button" data-act="showwait" data-k="' + w.k + '">화면 보기</button></div>';
+  else if (w && w.s === 'doing') banner = '<div class="banner" style="' + cvars(B(w.k)) + ';background:var(--tint)"><span class="dot" style="background:var(--c)">' + w.k + '</span><div class="txt">' + esc(B(w.k).name) + ' 체험 중<small>' + (bk(r, w.k).rj ? '운영진 선배가 조금 더 해 보자고 했어요. ' : '') + '다 마치면 완료 QR을 찍어요.</small></div></div>';
+  else banner = '<div class="banner" style="background:#FFFFFF"><span class="dot" style="background:var(--paper)">?</span><div class="txt">가고 싶은 부스로 가서 시작 QR을 찍어요.<small>부스는 어떤 순서로 돌아도 괜찮아요.</small></div></div>';
+  var stamps = BOOTHS.map(function (b) {
+    var s = st(r, b.k), x = bk(r, b.k);
+    var lab = s === 'done' ? '완료' : s === 'wait' ? '확인 대기' : s === 'doing' ? '체험 중' : '아직';
+    return '<div class="stamp ' + s + '" style="' + cvars(b) + '"><div class="ring">' + (s === 'done' ? '✓' : b.k) + '<small>' + lab + '</small></div><div class="bn">' + esc(b.name) + '</div><div class="bs">' + (s === 'done' && x.d ? hm(x.d) : esc(b.place)) + '</div></div>';
+  }).join('');
+  view.innerHTML =
+    '<section class="me"><div><div class="id">' + esc(idLabel(r)) + '</div><div class="nm">' + esc(r.name) + '</div></div><button class="btn small" type="button" data-act="relogin">내 정보 바꾸기</button></section>' +
+    banner +
+    '<button class="btn scanbtn" type="button" data-act="scan">' + QR_ICON + 'QR 찍기</button>' +
+    '<section class="panel"><div class="ph"><h2>나의 도장판</h2><span class="count">' + dc + ' / 5</span></div><div class="stamps">' + stamps + '</div></section>' +
+    '<section class="panel soft how"><h2 style="font-size:20px">이렇게 해요</h2><ol><li>부스에 도착하면 <b>시작 QR</b>을 찍어요.</li><li>체험을 다 마치면 <b>완료 QR</b>을 찍어요.</li><li>운영진 선배가 확인하면 도장이 찍혀요. 다섯 개를 모으면 완주!</li></ol></section>';
+}
+
+function doAction(p) {
+  if (!me || !myRec) { pending = p; return; }
+  if (p.a === 's') doStart(p.k); else doComplete(p.k);
+}
+function writeFail() { toast('저장하지 못했어요. 인터넷 연결을 확인해 주세요.'); }
+function doStart(k) {
+  var s = st(myRec, k);
+  if (s === 'done') return showOv('already', k);
+  if (s === 'wait') return showOv('wait', k);
+  var up = { cur: k, upd: TS };
+  for (var j = 1; j <= 5; j++) if (j !== k && st(myRec, j) === 'doing') up['b/b' + j] = null;
+  if (s !== 'doing') up['b/b' + k] = { st: 'doing', s: TS };
+  myRef.update(up).catch(writeFail);
+  showOv('start', k);
+}
+function doComplete(k) {
+  var s = st(myRec, k);
+  if (s === 'done') return showOv('already', k);
+  var up = { cur: k, upd: TS };
+  up['b/b' + k + '/st'] = 'wait';
+  up['b/b' + k + '/w'] = TS;
+  up['b/b' + k + '/rj'] = null;
+  if (!s) up['b/b' + k + '/s'] = TS;
+  myRef.update(up).catch(writeFail);
+  showOv('wait', k);
+}
+
+function showOv(kind, k) { ov = { kind: kind, k: k }; drawOv(); }
+function closeOv() { ov = null; overlay.hidden = true; overlay.innerHTML = ''; }
+function refreshOverlay() {
+  if (!ov || ov.kind !== 'wait') return;
+  var s = st(myRec, ov.k);
+  if (s === 'done') { ov.kind = 'done'; drawOv(); if (navigator.vibrate) navigator.vibrate([60, 40, 120]); }
+  else if (s === 'doing') { ov.kind = 'retry'; drawOv(); }
+  else if (!s) closeOv();
+}
+function drawOv() {
+  var b = B(ov.k), h = '', who = '<div class="who">' + esc(idLabel(myRec)) + ' ' + esc(myRec.name) + '</div>';
+  var num = '<div class="big-num">' + b.k + '</div>';
+  if (ov.kind === 'start') h = num + '<h2>' + esc(b.name) + '<br>체험 시작!</h2><p>체험을 다 마치면 <b>완료 QR</b>을 찍어 주세요.</p><button class="btn primary" type="button" data-act="closeov">확인</button>';
+  else if (ov.kind === 'wait') h = num + '<h2>완료 확인을<br>기다리고 있어요</h2><div class="wait-dots" aria-hidden="true"><i></i><i></i><i></i></div>' + who + '<p>운영진 선배에게 이 화면을 보여 주세요.</p><button class="btn" type="button" data-act="closeov">닫기</button>';
+  else if (ov.kind === 'done') { var dc = doneCount(myRec); h = '<div class="bigstamp">완료!<small>' + esc(b.name) + '</small></div><h2>' + (dc === 5 ? '다섯 부스 완주!' : '도장 ' + dc + '개 모았어요') + '</h2><p>' + (dc === 5 ? '선생님께 이 화면을 보여 주고 선물을 받아요.' : '다음 부스로 가서 시작 QR을 찍어요.') + '</p><button class="btn primary" type="button" data-act="closeov">확인</button>'; }
+  else if (ov.kind === 'retry') h = num + '<h2>조금만 더<br>해 볼까요?</h2><p>운영진 선배가 다시 해 보자고 했어요. 다 하고 나서 <b>완료 QR</b>을 다시 찍어 주세요.</p><button class="btn primary" type="button" data-act="closeov">확인</button>';
+  else if (ov.kind === 'already') h = '<div class="bigstamp" style="animation:none;transform:rotate(-8deg)">✓<small>' + esc(b.name) + '</small></div><h2>이미 완료한 부스예요</h2><p>다른 부스로 가 볼까요?</p><button class="btn primary" type="button" data-act="closeov">확인</button>';
+  overlay.innerHTML = '<div class="sheet" style="' + cvars(b) + '" role="dialog" aria-modal="true">' + h + '</div>';
+  overlay.hidden = false;
+}
+
+/* ---------- scanner ---------- */
+var video = $('#video'), scanEl = $('#scan'), scanCanvas = $('#scanCanvas');
+var stream = null, scanning = false, detector = null, lastTick = 0, badShown = 0;
+function scanMsg(t) { $('#scanMsg').textContent = t; }
+function loadScript(src) { return new Promise(function (ok, no) { var s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = no; document.head.appendChild(s); }); }
+function openScan() {
+  scanEl.hidden = false; scanMsg('카메라를 켜는 중…');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { scanMsg('이 기기에서는 카메라를 쓸 수 없어요. 태블릿 카메라 앱으로 QR을 찍어도 돼요.'); return; }
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }).then(function (s) {
+    stream = s; video.srcObject = s;
+    var pl = video.play(); if (pl && pl.catch) pl.catch(function () {});
+    return prepDetector();
+  }).then(function () {
+    if (!stream) return;
+    if (!detector && !window.jsQR) { scanMsg('QR 읽기 도구를 불러오지 못했어요. 태블릿 카메라 앱으로 QR을 찍어도 돼요.'); return; }
+    scanMsg('QR 코드를 네모 안에 맞춰 주세요.');
+    scanning = true; requestAnimationFrame(tick);
+  }).catch(function () { scanMsg('카메라를 켜지 못했어요. 카메라 사용을 ‘허용’했는지 확인해 주세요.'); });
+}
+function prepDetector() {
+  detector = null;
+  var p = Promise.resolve();
+  if ('BarcodeDetector' in window && window.BarcodeDetector.getSupportedFormats) {
+    p = window.BarcodeDetector.getSupportedFormats().then(function (f) { if (f.indexOf('qr_code') >= 0) detector = new window.BarcodeDetector({ formats: ['qr_code'] }); }).catch(function () {});
+  }
+  return p.then(function () { if (!detector && !window.jsQR) return loadScript(JSQR_URL).catch(function () {}); });
+}
+function tick() {
+  if (!scanning) return;
+  var t = performance.now();
+  if (t - lastTick < 200 || video.readyState < 2) { requestAnimationFrame(tick); return; }
+  lastTick = t;
+  readFrame().then(function (text) {
+    if (!scanning) return;
+    if (text) {
+      var a = parseQR(text);
+      if (a) { closeScan(); if (navigator.vibrate) navigator.vibrate(60); doAction(a); return; }
+      if (Date.now() - badShown > 2500) { badShown = Date.now(); scanMsg('청소초 부스 QR이 아니에요. 부스에 붙은 QR을 찍어 주세요.'); }
+    }
+    requestAnimationFrame(tick);
+  });
+}
+function readFrame() {
+  try {
+    if (detector) return detector.detect(video).then(function (r) { return r && r.length ? r[0].rawValue : null; }).catch(function () { return null; });
+    var w = video.videoWidth, h = video.videoHeight;
+    if (!w || !h || !window.jsQR) return Promise.resolve(null);
+    var sc = Math.min(1, 720 / Math.max(w, h)), cw = Math.round(w * sc), ch = Math.round(h * sc);
+    scanCanvas.width = cw; scanCanvas.height = ch;
+    var ctx = scanCanvas.getContext('2d', { willReadFrequently: true });
+    ctx.drawImage(video, 0, 0, cw, ch);
+    var r = window.jsQR(ctx.getImageData(0, 0, cw, ch).data, cw, ch, { inversionAttempts: 'dontInvert' });
+    return Promise.resolve(r ? r.data : null);
+  } catch (e) { return Promise.resolve(null); }
+}
+function closeScan() {
+  scanning = false;
+  if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+  video.srcObject = null; scanEl.hidden = true;
+}
+$('#scanClose').addEventListener('click', closeScan);
+
+/* =========================================================
+   SHARED: live list of every student (staff + dashboard)
+   ========================================================= */
+var ALL = {}, allCb = null;
+function attachAll(cb) {
+  allCb = cb;
+  DB.ref('event/students').on('value', function (s) { ALL = s.val() || {}; if (allCb) allCb(); }, function () { fatal('기록을 볼 수 없어요. 잠시 뒤 다시 열어 주세요.'); });
+  setInterval(function () { if (allCb) allCb(); }, 20000);
+}
+
+/* =========================================================
+   STAFF
+   ========================================================= */
+var staff = null, staffSel = 1;
+function staffStart() {
+  document.title = '부스 운영진 · 청소초';
+  $('#brandText').textContent = '부스 운영진';
+  DB.ref('event/staff/' + UID).once('value').then(function (s) {
+    var v = s.val();
+    if (v && v.booth >= 1 && v.booth <= 5) { staff = { booth: v.booth, name: v.name || '' }; enterStaff(); }
+    else renderStaffLogin(v ? '' : '');
+  }).catch(function () { renderStaffLogin(); });
+}
+function renderStaffLogin(msg) {
+  var prev = lsGet('bt_staff') || {};
+  staffSel = prev.booth || 1;
+  var seg = BOOTHS.map(function (b) { return '<button type="button" data-k="' + b.k + '" aria-pressed="' + (staffSel === b.k) + '">' + b.k + ' ' + esc(b.name) + '</button>'; }).join('');
+  view.innerHTML =
+    '<section class="hero"><p class="kicker">청소초등학교 미래 교육 부스</p><h1>운영진 화면</h1><p>내가 맡은 부스를 고르고 운영진 PIN을 넣어요.</p></section>' +
+    '<form class="panel" id="sForm" autocomplete="off">' +
+      '<div class="lbl">맡은 부스</div><div class="seg" id="bSeg">' + seg + '</div>' +
+      '<div class="row3"><div class="field grow" style="grid-column:span 2"><label for="sName">운영진 이름 (선택)</label><input id="sName" maxlength="10" value="' + esc(prev.name || '') + '" placeholder="예: 6학년 김민준"></div>' +
+      '<div class="field"><label for="sPin">PIN</label><input id="sPin" type="password" inputmode="numeric" maxlength="8" placeholder="숫자"></div></div>' +
+      '<p class="err" id="sErr">' + esc(msg || '') + '</p>' +
+      '<button class="btn primary big" type="submit">운영 시작</button>' +
+    '</form><p class="foot"><a href="./">학생 화면</a>·<a href="?dash">실시간 현황판</a></p>';
+  $('#bSeg').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-k]'); if (!b) return;
+    staffSel = Number(b.dataset.k);
+    [].forEach.call(this.children, function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+  });
+  $('#sForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var pin = $('#sPin').value.trim(), name = $('#sName').value.trim();
+    if (!pin) { $('#sErr').textContent = 'PIN을 넣어 주세요.'; return; }
+    DB.ref('event/staff/' + UID).set({ pin: pin, booth: staffSel, name: name, at: TS }).then(function () {
+      staff = { booth: staffSel, name: name }; lsSet('bt_staff', staff); enterStaff();
+    }).catch(function () { $('#sErr').textContent = 'PIN이 맞지 않아요.'; });
+  });
+}
+function enterStaff() { drawStaffShell(); if (!allCb) attachAll(fillStaff); else { allCb = fillStaff; fillStaff(); } }
+function drawStaffShell() {
+  var b = B(staff.booth);
+  var sel = BOOTHS.map(function (x) { return '<option value="' + x.k + '"' + (x.k === b.k ? ' selected' : '') + '>' + x.k + ' ' + esc(x.name) + '</option>'; }).join('');
+  view.innerHTML =
+    '<section class="shead" style="' + cvars(b) + '"><div class="num">' + b.k + '</div><div><p class="kicker">' + esc(b.place) + (staff.name ? ' · ' + esc(staff.name) : '') + '</p><h1>' + esc(b.name) + ' 운영진</h1></div>' +
+      '<div class="acts"><label class="sr" for="chg" style="position:absolute;left:-9999px">부스 바꾸기</label><select id="chg" class="btn small" style="box-shadow:0 2px 0 var(--ink)">' + sel + '</select><button class="btn small" type="button" data-act="slogout">나가기</button></div></section>' +
+    '<div class="kpis"><div class="kpi hot" id="kW"><b>0</b><span>완료 확인 요청</span></div><div class="kpi"><b id="kD">0</b><span>지금 체험 중</span></div><div class="kpi"><b id="kF">0</b><span>완료한 학생</span></div></div>' +
+    '<section class="panel" style="' + cvars(b) + '"><h2>완료 확인 요청</h2><div class="list" id="wList"></div></section>' +
+    '<section class="panel"><h2>지금 체험 중</h2><div id="dList"></div></section>' +
+    '<details class="panel soft"><summary>QR 없이 직접 완료 처리</summary><p class="note">태블릿이 없거나 QR이 안 되는 학생은 여기서 바로 완료로 처리해요.</p>' +
+      '<form class="mform" id="mForm" autocomplete="off"><div class="field"><label for="mG">학년</label><select id="mG">' + opts(1, 6, '') + '</select></div><div class="field"><label for="mC">반</label><select id="mC">' + opts(1, 9, 1) + '</select></div><div class="field"><label for="mN">번호</label><select id="mN">' + opts(1, 35, '') + '</select></div><div class="field grow"><label for="mName">이름</label><input id="mName" maxlength="10"></div><button class="btn ok" type="submit">완료 처리</button></form></details>' +
+    '<section class="panel"><h2>최근 완료</h2><div id="rList"></div></section>' +
+    '<p class="foot"><a href="?dash">실시간 현황판 보기</a></p>';
+  $('#chg').addEventListener('change', function () {
+    var k = Number(this.value);
+    DB.ref('event/staff/' + UID).update({ booth: k }).then(function () { staff.booth = k; lsSet('bt_staff', staff); drawStaffShell(); fillStaff(); }).catch(function () { toast('바꾸지 못했어요.'); });
+  });
+  $('#mForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var g = Number($('#mG').value), c = Number($('#mC').value), n = Number($('#mN').value), name = $('#mName').value.trim();
+    if (!name) { toast('이름을 써 주세요.'); return; }
+    var k = staff.booth, up = { g: g, c: c, n: n, name: name, upd: TS };
+    up['b/b' + k] = { st: 'done', s: TS, d: TS, by: staff.name || '', m: true };
+    DB.ref('event/students/' + sidOf(g, c, n)).update(up).then(function () { toast(name + ' 완료 처리했어요.'); $('#mName').value = ''; }).catch(function () { toast('처리하지 못했어요. 운영진 로그인을 확인해 주세요.'); });
+  });
+}
+function fillStaff() {
+  if (!$('#wList')) return;
+  var k = staff.booth, recs = allRecs(ALL), waits = [], doings = [], dones = [];
+  recs.forEach(function (r) { var s = st(r, k); if (s === 'wait') waits.push(r); else if (s === 'doing') doings.push(r); else if (s === 'done') dones.push(r); });
+  waits.sort(function (a, b) { return (bk(a, k).w || 0) - (bk(b, k).w || 0); });
+  doings.sort(function (a, b) { return (bk(a, k).s || 0) - (bk(b, k).s || 0); });
+  dones.sort(function (a, b) { return (bk(b, k).d || 0) - (bk(a, k).d || 0); });
+  $('#kW').querySelector('b').textContent = waits.length; $('#kW').classList.toggle('hot', waits.length > 0);
+  $('#kD').textContent = doings.length; $('#kF').textContent = dones.length;
+  $('#wList').innerHTML = waits.length ? waits.map(function (r) {
+    var x = bk(r, k);
+    return '<div class="req"><div class="who2"><span>' + esc(idLabel(r)) + '</span><b>' + esc(r.name) + '</b><span>' + ago(x.w) + ' 요청' + (x.s ? ' · ' + Math.max(1, Math.round(((x.w || now()) - x.s) / 60000)) + '분 체험' : '') + '</span></div>' +
+      '<div class="acts2"><button class="btn small" type="button" data-act="reject" data-sid="' + r.sid + '">다시 하기</button><button class="btn ok" type="button" data-act="approve" data-sid="' + r.sid + '">완료 승인</button></div></div>';
+  }).join('') : '<p class="empty">아직 요청이 없어요. 학생이 완료 QR을 찍으면 여기에 나타나요.</p>';
+  $('#dList').innerHTML = doings.length ? doings.map(function (r) {
+    var x = bk(r, k);
+    return '<div class="row"><div class="grow"><b>' + esc(r.name) + '</b> <span class="t">' + esc(idLabel(r)) + '</span></div><span class="t">' + (minsSince(x.s) < 1 ? '방금 시작' : minsSince(x.s) + '분째') + (x.rj ? ' · 다시 하는 중' : '') + '</span><button class="btn small" type="button" data-act="approve" data-sid="' + r.sid + '">바로 완료</button></div>';
+  }).join('') : '<p class="empty">체험 중인 학생이 없어요.</p>';
+  $('#rList').innerHTML = dones.length ? dones.slice(0, 12).map(function (r) {
+    var x = bk(r, k);
+    return '<div class="row"><div class="grow"><b>' + esc(r.name) + '</b> <span class="t">' + esc(idLabel(r)) + (x.m ? ' · 직접 처리' : '') + '</span></div><span class="t">' + (x.d ? hm(x.d) : '') + '</span><button class="btn small" type="button" data-act="undo" data-sid="' + r.sid + '">취소</button></div>';
+  }).join('') + (dones.length > 12 ? '<p class="note">외 ' + (dones.length - 12) + '명</p>' : '') : '<p class="empty">아직 완료한 학생이 없어요.</p>';
+}
+function staffWrite(sid, up, okMsg) {
+  DB.ref('event/students/' + sid).update(up).then(function () { if (okMsg) toast(okMsg); }).catch(function () { toast('저장하지 못했어요. 운영진 로그인을 확인해 주세요.'); });
+}
+function approve(sid) {
+  var k = staff.booth, r = ALL[sid]; if (!r) return;
+  var up = { upd: TS };
+  up['b/b' + k + '/st'] = 'done'; up['b/b' + k + '/d'] = TS; up['b/b' + k + '/by'] = staff.name || ''; up['b/b' + k + '/rj'] = null;
+  if (!bk(r, k) || !bk(r, k).s) up['b/b' + k + '/s'] = TS;
+  if (r.cur === k) up.cur = 0;
+  staffWrite(sid, up, r.name + ' 완료!');
+}
+function reject(sid) {
+  var k = staff.booth, up = { upd: TS };
+  up['b/b' + k + '/st'] = 'doing'; up['b/b' + k + '/rj'] = TS;
+  staffWrite(sid, up, '다시 하기로 돌려보냈어요.');
+}
+function undo(sid) {
+  var k = staff.booth, r = ALL[sid];
+  var btn = document.querySelector('[data-act="undo"][data-sid="' + sid + '"]');
+  if (btn && !btn.dataset.armed) { btn.dataset.armed = '1'; btn.textContent = '정말 취소'; btn.classList.add('danger'); setTimeout(function () { if (btn) { delete btn.dataset.armed; btn.textContent = '취소'; btn.classList.remove('danger'); } }, 3000); return; }
+  DB.ref('event/students/' + sid + '/b/b' + k).remove().then(function () { toast((r ? r.name : '') + ' 완료를 취소했어요.'); }).catch(function () { toast('취소하지 못했어요.'); });
+}
+
+/* =========================================================
+   DASHBOARD
+   ========================================================= */
+var tab = 'all', rotate = false, rotT = null;
+function dashStart() {
+  document.title = '실시간 현황판 · 청소초 미래 교육 부스';
+  document.body.classList.add('wide');
+  $('#brandText').textContent = '청소초 부스 인증';
+  view.innerHTML =
+    '<section class="dhead"><div><p class="kicker">청소초등학교 미래 교육 부스 · 2026. 10. 22.(목)</p><h1>실시간 현황판</h1></div><div class="clock" id="clock"></div></section>' +
+    '<div class="kpis dk"><div class="kpi"><b id="dP">0</b><span>참여 학생</span></div><div class="kpi"><b id="dD">0</b><span>지금 체험 중</span></div><div class="kpi" id="dWk"><b id="dW">0</b><span>완료 확인 대기</span></div><div class="kpi" style="background:var(--ok-bg);border-color:var(--ok)"><b id="dF">0</b><span>다섯 부스 완주</span></div></div>' +
+    '<div class="booths" id="booths"></div>' +
+    '<div class="tabs" id="tabs" role="tablist"></div>' +
+    '<div class="dgrid"><div style="display:grid;gap:16px;min-width:0"><section class="panel" id="gsumP"><h2>학년별 진행</h2><div class="gsum" id="gsum"></div></section>' +
+      '<section class="panel"><div class="ph"><h2 id="tblTitle">학생별 현황</h2><div class="legend"><span class="cell">아직</span><span class="cell doing" style="--tint:#ECF1FA">체험 중</span><span class="cell wait">확인 대기</span><span class="cell done" style="--c:#CFE6C3">완료</span></div></div><div class="tablewrap" id="tbl"></div></section></div>' +
+      '<aside class="panel"><h2>최근 활동</h2><div class="feed" id="feed"></div></aside></div>' +
+    '<div class="admin"><button class="btn small" type="button" data-act="csv">결과 내려받기 (CSV)</button><button class="btn small" type="button" data-act="reset">기록 전체 지우기</button></div>';
+  setInterval(drawClock, 1000); drawClock();
+  attachAll(fillDash);
+}
+function drawClock() { var el = $('#clock'); if (!el) return; var d = new Date(now()); el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
+function grades(recs) { var g = {}; recs.forEach(function (r) { g[r.g] = 1; }); var out = [1, 2, 3, 4, 5]; if (g[6]) out.push(6); return out; }
+function fillDash() {
+  var recs = allRecs(ALL), active = 0, waiting = 0, fin = 0;
+  var per = BOOTHS.map(function () { return { here: 0, wait: 0, done: 0 }; });
+  recs.forEach(function (r) {
+    var w = where(r); if (w) { per[w.k - 1].here++; if (w.s === 'wait') { waiting++; per[w.k - 1].wait++; } else active++; }
+    for (var k = 1; k <= 5; k++) if (st(r, k) === 'done') per[k - 1].done++;
+    if (doneCount(r) === 5) fin++;
+  });
+  $('#dP').textContent = recs.length; $('#dD').textContent = active; $('#dW').textContent = waiting; $('#dF').textContent = fin;
+  $('#dWk').classList.toggle('hot', waiting > 0);
+  $('#booths').innerHTML = BOOTHS.map(function (b, i) {
+    var p = per[i];
+    return '<div class="bcard" style="' + cvars(b) + '"><div class="bt"><span class="n">' + b.k + '</span>' + esc(b.name) + '<small>' + esc(b.place) + '</small></div><div class="bb"><div><b>' + p.here + '</b><span>지금 여기</span></div><div><b>' + p.done + '</b><span>완료</span></div><div class="w">' + (p.wait ? '확인 대기 ' + p.wait + '명' : '') + '</div></div></div>';
+  }).join('');
+
+  var gl = grades(recs);
+  if (tab !== 'all' && gl.indexOf(Number(tab)) < 0) tab = 'all';
+  $('#tabs').innerHTML = '<button type="button" role="tab" data-tab="all" aria-selected="' + (tab === 'all') + '">전체</button>' +
+    gl.map(function (g) { return '<button type="button" role="tab" data-tab="' + g + '" aria-selected="' + (String(tab) === String(g)) + '">' + g + '학년</button>'; }).join('') +
+    '<label><input type="checkbox" id="rot"' + (rotate ? ' checked' : '') + '> 학년 자동 넘김</label>';
+
+  // grade summary
+  $('#gsum').innerHTML = gl.map(function (g) {
+    var rs = recs.filter(function (r) { return r.g === g; }), n = rs.length, f = 0, dk = [0, 0, 0, 0, 0];
+    rs.forEach(function (r) { if (doneCount(r) === 5) f++; for (var k = 1; k <= 5; k++) if (st(r, k) === 'done') dk[k - 1]++; });
+    var bars = n ? BOOTHS.map(function (b, i) { return '<i style="--c:' + b.c + ';width:' + (dk[i] / (n * 5) * 100) + '%" title="' + esc(b.name) + ' ' + dk[i] + '명"></i>'; }).join('') : '';
+    var pct = n ? Math.round(dk.reduce(function (a, b) { return a + b; }, 0) / (n * 5) * 100) : 0;
+    return '<div class="grow-g"><span class="gl">' + g + '학년</span><div class="prog" role="img" aria-label="' + g + '학년 진행률 ' + pct + '%">' + bars + '</div><span class="gn">참여 ' + n + '명 · 완주 ' + f + '명 · ' + pct + '%</span></div>';
+  }).join('');
+  $('#gsumP').hidden = tab !== 'all';
+
+  // table
+  var rows = tab === 'all' ? recs : recs.filter(function (r) { return String(r.g) === String(tab); });
+  $('#tblTitle').textContent = (tab === 'all' ? '전체' : tab + '학년') + ' 학생별 현황 (' + rows.length + '명)';
+  $('#tbl').innerHTML = rows.length ? '<table class="st"><thead><tr><th>학년·반·번호</th><th>이름</th>' + BOOTHS.map(function (b) { return '<th class="c">' + b.k + ' ' + esc(b.name) + '</th>'; }).join('') + '<th>지금</th><th class="c">완료</th></tr></thead><tbody>' +
+    rows.map(function (r) {
+      var dc = doneCount(r), w = where(r);
+      var cells = BOOTHS.map(function (b) { var s = st(r, b.k); return '<td class="c"><span class="cell ' + s + '" style="' + cvars(b) + '">' + (s === 'done' ? '✓ ' + (bk(r, b.k).d ? hm(bk(r, b.k).d) : '') : s === 'wait' ? '확인 대기' : s === 'doing' ? '체험 중' : '·') + '</span></td>'; }).join('');
+      var wh = dc === 5 ? '완주' : w ? B(w.k).name + (w.s === 'wait' ? ' (대기)' : '') : '이동 중';
+      return '<tr class="' + (dc === 5 ? 'all' : '') + '"><td>' + r.g + '-' + r.c + '-' + r.n + '</td><td class="nm">' + esc(r.name) + '</td>' + cells + '<td class="where">' + esc(wh) + '</td><td class="c"><b>' + dc + '</b>/5</td></tr>';
+    }).join('') + '</tbody></table>' : '<p class="empty">아직 참여한 학생이 없어요.</p>';
+
+  // feed
+  var ev = [];
+  recs.forEach(function (r) { for (var k = 1; k <= 5; k++) { var x = bk(r, k); if (!x) continue; if (x.d) ev.push([x.d, k, r, '완료']); else if (x.w && x.st === 'wait') ev.push([x.w, k, r, '완료 요청']); if (x.s) ev.push([x.s, k, r, '시작']); } });
+  ev.sort(function (a, b) { return b[0] - a[0]; });
+  $('#feed').innerHTML = ev.length ? ev.slice(0, 16).map(function (e) { var b = B(e[1]); return '<div class="fi"><span class="t">' + hm(e[0]) + '</span><span class="d" style="--c:' + b.c + '">' + b.k + '</span><span>' + e[2].g + '학년 <b>' + esc(e[2].name) + '</b> · ' + esc(b.name) + ' ' + e[3] + '</span></div>'; }).join('') : '<p class="empty">아직 활동이 없어요.</p>';
+}
+function setRotate(on) {
+  rotate = on; clearInterval(rotT);
+  if (on) rotT = setInterval(function () { var gl = ['all'].concat(grades(allRecs(ALL)).map(String)); var i = gl.indexOf(String(tab)); tab = gl[(i + 1) % gl.length]; fillDash(); }, 12000);
+}
+function downloadCsv() {
+  var recs = allRecs(ALL), lines = [['학년', '반', '번호', '이름'].concat(BOOTHS.map(function (b) { return b.k + ' ' + b.name; })).concat(['완료 수']).join(',')];
+  recs.forEach(function (r) { lines.push([r.g, r.c, r.n, '"' + String(r.name).replace(/"/g, '""') + '"'].concat(BOOTHS.map(function (b) { var x = bk(r, b.k); return x && x.st === 'done' ? (x.d ? hm(x.d) : '완료') : x ? (x.st === 'wait' ? '확인 대기' : '체험 중') : ''; })).concat([doneCount(r)]).join(',')); });
+  var blob = new Blob([String.fromCharCode(0xFEFF) + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = '미래교육부스_결과.csv'; document.body.appendChild(a); a.click(); a.remove();
+}
+function openReset() {
+  overlay.innerHTML = '<form class="sheet" id="rForm" role="dialog" aria-modal="true" style="--c:var(--bad-bg)"><h2>기록 전체 지우기</h2><p>모든 학생의 부스 기록이 지워져요. 리허설이 끝난 뒤에만 쓰세요.</p><div class="field" style="width:100%"><label for="rPin">운영진 PIN</label><input id="rPin" type="password" inputmode="numeric" maxlength="8"></div><p class="err" id="rErr"></p><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn" type="button" data-act="closeov">그만두기</button><button class="btn danger" type="submit">모두 지우기</button></div></form>';
+  overlay.hidden = false;
+  $('#rForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var pin = $('#rPin').value.trim();
+    DB.ref('event/staff/' + UID).once('value').then(function (s) {
+      var v = s.val();
+      return DB.ref('event/staff/' + UID).set({ pin: pin, booth: (v && v.booth) || 0, name: (v && v.name) || '현황판', at: TS });
+    }).then(function () { return DB.ref('event/students').remove(); })
+      .then(function () { closeOv(); toast('기록을 모두 지웠어요.'); })
+      .catch(function () { $('#rErr').textContent = 'PIN이 맞지 않거나 지우지 못했어요.'; });
+  });
+}
+
+/* ---------- one click handler for everything ---------- */
+document.addEventListener('click', function (e) {
+  var t = e.target.closest('[data-act]');
+  if (t) {
+    var a = t.dataset.act;
+    if (a === 'scan') openScan();
+    else if (a === 'relogin') { if (myRef) myRef.off(); myRef = null; myRec = null; loginHold = me; renderLogin(); }
+    else if (a === 'closeov') closeOv();
+    else if (a === 'showwait') showOv('wait', Number(t.dataset.k));
+    else if (a === 'approve') { t.disabled = true; approve(t.dataset.sid); }
+    else if (a === 'reject') { t.disabled = true; reject(t.dataset.sid); }
+    else if (a === 'undo') undo(t.dataset.sid);
+    else if (a === 'slogout') { DB.ref('event/staff/' + UID).remove().finally(function () { staff = null; renderStaffLogin(); }); }
+    else if (a === 'csv') downloadCsv();
+    else if (a === 'reset') openReset();
+    return;
+  }
+  var tb = e.target.closest('[data-tab]');
+  if (tb) { tab = tb.dataset.tab; fillDash(); }
+});
+document.addEventListener('change', function (e) { if (e.target && e.target.id === 'rot') setRotate(e.target.checked); });
+overlay.addEventListener('click', function (e) { if (e.target === overlay) closeOv(); });
+
+initFb();
+})();
+</script>
+</body>
+</html>
