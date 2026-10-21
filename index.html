@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
 <title>청소초 부스 인증</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -199,7 +201,11 @@ table.st tr.all td { background: var(--ok-bg); }
 .feed .fi .t { font-variant-numeric: tabular-nums; color: var(--ink-soft); font-weight: 700; font-size: 14px; }
 .feed .fi .d { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ink); background: var(--c); font-family: var(--display); font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
 .legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: 13px; font-weight: 700; color: var(--ink-soft); align-items: center; }
-.admin { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+.admin { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; align-items: center; }
+html { background: var(--paper); }
+.dtools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.delbtn { border: 2px solid var(--bad); color: var(--bad); background: #FFFFFF; border-radius: 10px; padding: 4px 12px; font-size: 14px; font-weight: 700; cursor: pointer; min-height: 38px; font-family: inherit; }
+.adminchip { font-size: 14px; font-weight: 700; color: var(--ok); margin-right: auto; }
 </style>
 </head>
 <body>
@@ -635,16 +641,18 @@ function dashStart() {
   document.body.classList.add('wide');
   $('#brandText').textContent = '청소초 부스 인증';
   view.innerHTML =
-    '<section class="dhead"><div><p class="kicker">청소초등학교 미래 교육 부스 · 2026. 10. 22.(목)</p><h1>실시간 현황판</h1></div><div class="clock" id="clock"></div></section>' +
+    '<section class="dhead"><div><p class="kicker">청소초등학교 미래 교육 부스 · 2026. 10. 22.(목)</p><h1>실시간 현황판</h1></div><div class="dtools"><div class="clock" id="clock"></div><button class="btn small" type="button" data-act="fs" id="fsBtn">전체화면</button></div></section>' +
     '<div class="kpis dk"><div class="kpi"><b id="dP">0</b><span>참여 학생</span></div><div class="kpi"><b id="dD">0</b><span>지금 체험 중</span></div><div class="kpi" id="dWk"><b id="dW">0</b><span>완료 확인 대기</span></div><div class="kpi" style="background:var(--ok-bg);border-color:var(--ok)"><b id="dF">0</b><span>다섯 부스 완주</span></div></div>' +
     '<div class="booths" id="booths"></div>' +
     '<div class="tabs" id="tabs" role="tablist"></div>' +
     '<div class="dgrid"><div style="display:grid;gap:16px;min-width:0"><section class="panel" id="gsumP"><h2>학년별 진행</h2><div class="gsum" id="gsum"></div></section>' +
       '<section class="panel"><div class="ph"><h2 id="tblTitle">학생별 현황</h2><div class="legend"><span class="cell">아직</span><span class="cell doing" style="--tint:#ECF1FA">체험 중</span><span class="cell wait">확인 대기</span><span class="cell done" style="--c:#CFE6C3">완료</span></div></div><div class="tablewrap" id="tbl"></div></section></div>' +
       '<aside class="panel"><h2>최근 활동</h2><div class="feed" id="feed"></div></aside></div>' +
-    '<div class="admin"><button class="btn small" type="button" data-act="csv">결과 내려받기 (CSV)</button><button class="btn small" type="button" data-act="reset">기록 전체 지우기</button></div>';
+    '<div class="admin"><span class="adminchip" id="adminChip"></span><button class="btn small" type="button" data-act="admin" id="adminBtn">관리자 로그인</button><button class="btn small" type="button" data-act="csv">결과 내려받기 (CSV)</button><button class="btn small" type="button" data-act="reset">기록 전체 지우기</button></div>';
   setInterval(drawClock, 1000); drawClock();
   attachAll(fillDash);
+  DB.ref('event/staff/' + UID).once('value').then(function (s) { if (s.val()) setAdmin(true); }).catch(function () {});
+  document.addEventListener('fullscreenchange', fsLabel); document.addEventListener('webkitfullscreenchange', fsLabel);
 }
 function drawClock() { var el = $('#clock'); if (!el) return; var d = new Date(now()); el.textContent = pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()); }
 function grades(recs) { var g = {}; recs.forEach(function (r) { g[r.g] = 1; }); var out = [1, 2, 3, 4, 5]; if (g[6]) out.push(6); return out; }
@@ -682,12 +690,12 @@ function fillDash() {
   // table
   var rows = tab === 'all' ? recs : recs.filter(function (r) { return String(r.g) === String(tab); });
   $('#tblTitle').textContent = (tab === 'all' ? '전체' : tab + '학년') + ' 학생별 현황 (' + rows.length + '명)';
-  $('#tbl').innerHTML = rows.length ? '<table class="st"><thead><tr><th>학년·반·번호</th><th>이름</th>' + BOOTHS.map(function (b) { return '<th class="c">' + b.k + ' ' + esc(b.name) + '</th>'; }).join('') + '<th>지금</th><th class="c">완료</th></tr></thead><tbody>' +
+  $('#tbl').innerHTML = rows.length ? '<table class="st"><thead><tr><th>학년·반·번호</th><th>이름</th>' + BOOTHS.map(function (b) { return '<th class="c">' + b.k + ' ' + esc(b.name) + '</th>'; }).join('') + '<th>지금</th><th class="c">완료</th>' + (isAdmin ? '<th class="c">관리</th>' : '') + '</tr></thead><tbody>' +
     rows.map(function (r) {
       var dc = doneCount(r), w = where(r);
       var cells = BOOTHS.map(function (b) { var s = st(r, b.k); return '<td class="c"><span class="cell ' + s + '" style="' + cvars(b) + '">' + (s === 'done' ? '✓ ' + (bk(r, b.k).d ? hm(bk(r, b.k).d) : '') : s === 'wait' ? '확인 대기' : s === 'doing' ? '체험 중' : '·') + '</span></td>'; }).join('');
       var wh = dc === 5 ? '완주' : w ? B(w.k).name + (w.s === 'wait' ? ' (대기)' : '') : '이동 중';
-      return '<tr class="' + (dc === 5 ? 'all' : '') + '"><td>' + r.g + '-' + r.c + '-' + r.n + '</td><td class="nm">' + esc(r.name) + '</td>' + cells + '<td class="where">' + esc(wh) + '</td><td class="c"><b>' + dc + '</b>/5</td></tr>';
+      return '<tr class="' + (dc === 5 ? 'all' : '') + '"><td>' + r.g + '-' + r.c + '-' + r.n + '</td><td class="nm">' + esc(r.name) + '</td>' + cells + '<td class="where">' + esc(wh) + '</td><td class="c"><b>' + dc + '</b>/5</td>' + (isAdmin ? '<td class="c"><button class="delbtn" type="button" data-act="del" data-sid="' + r.sid + '">삭제</button></td>' : '') + '</tr>';
     }).join('') + '</tbody></table>' : '<p class="empty">아직 참여한 학생이 없어요.</p>';
 
   // feed
@@ -721,6 +729,37 @@ function openReset() {
   });
 }
 
+var isAdmin = false;
+function setAdmin(on) { isAdmin = on; var c = $('#adminChip'), b = $('#adminBtn'); if (c) c.textContent = on ? '관리자 모드 · 학생 줄의 삭제 버튼으로 기록을 지울 수 있어요' : ''; if (b) b.hidden = on; fillDash(); }
+function openAdmin() {
+  overlay.innerHTML = '<form class="sheet" id="aForm" role="dialog" aria-modal="true" style="--c:var(--paper)"><h2>관리자 로그인</h2><p>운영진 PIN을 넣으면 학생 기록을 지울 수 있어요.</p><div class="field" style="width:100%"><label for="aPin">운영진 PIN</label><input id="aPin" type="password" inputmode="numeric" maxlength="8"></div><p class="err" id="aErr"></p><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn" type="button" data-act="closeov">그만두기</button><button class="btn primary" type="submit">로그인</button></div></form>';
+  overlay.hidden = false;
+  $('#aForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    DB.ref('event/staff/' + UID).set({ pin: $('#aPin').value.trim(), booth: 0, name: '현황판', at: TS })
+      .then(function () { closeOv(); setAdmin(true); toast('관리자 모드가 켜졌어요.'); })
+      .catch(function () { $('#aErr').textContent = 'PIN이 맞지 않아요.'; });
+  });
+}
+function openDel(sid) {
+  var r = ALL[sid]; if (!r) return;
+  overlay.innerHTML = '<div class="sheet" role="dialog" aria-modal="true" style="--c:var(--bad-bg)"><h2>학생 기록 삭제</h2><div class="who">' + esc(idLabel(r)) + ' ' + esc(r.name) + '</div><p>이 학생의 부스 기록(완료 ' + doneCount(r) + '개)이 모두 지워져요. 되돌릴 수 없어요.</p><div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button class="btn" type="button" data-act="closeov">그만두기</button><button class="btn danger" type="button" data-act="delok" data-sid="' + sid + '">삭제</button></div></div>';
+  overlay.hidden = false;
+}
+function doDel(sid) {
+  var r = ALL[sid];
+  DB.ref('event/students/' + sid).remove().then(function () { closeOv(); toast((r ? r.name : '') + ' 기록을 지웠어요.'); }).catch(function () { toast('지우지 못했어요.'); });
+}
+function fsEl() { return document.fullscreenElement || document.webkitFullscreenElement; }
+function fsLabel() { var b = $('#fsBtn'); if (b) b.textContent = fsEl() ? '전체화면 끝내기' : '전체화면'; }
+function toggleFs() {
+  var d = document.documentElement;
+  if (fsEl()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+  var req = d.requestFullscreen || d.webkitRequestFullscreen;
+  if (!req) { toast('이 브라우저는 전체화면을 지원하지 않아요. 크롬에서 열어 보세요.'); return; }
+  try { var p = req.call(d); if (p && p.catch) p.catch(function () { toast('전체화면을 켜지 못했어요.'); }); } catch (e) { toast('전체화면을 켜지 못했어요.'); }
+}
+
 /* ---------- one click handler for everything ---------- */
 document.addEventListener('click', function (e) {
   var t = e.target.closest('[data-act]');
@@ -734,6 +773,10 @@ document.addEventListener('click', function (e) {
     else if (a === 'reject') { t.disabled = true; reject(t.dataset.sid); }
     else if (a === 'undo') undo(t.dataset.sid);
     else if (a === 'slogout') { DB.ref('event/staff/' + UID).remove().finally(function () { staff = null; renderStaffLogin(); }); }
+    else if (a === 'fs') toggleFs();
+    else if (a === 'admin') openAdmin();
+    else if (a === 'del') openDel(t.dataset.sid);
+    else if (a === 'delok') doDel(t.dataset.sid);
     else if (a === 'csv') downloadCsv();
     else if (a === 'reset') openReset();
     return;
